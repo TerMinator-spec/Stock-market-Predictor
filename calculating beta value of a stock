@@ -1,0 +1,133 @@
+import pandas as pd
+import numpy as np
+
+Gold=pd.read_csv("GOLD.csv")
+#Using regression for column pred
+#___________________________________________________________________________________________
+# getting data for regression
+X_train=Gold.iloc[:411, 1:5]
+y_train=Gold.iloc[:411, 7]
+X_test=Gold.iloc[411:, 1:5]
+
+
+#training the model for column pred
+from sklearn.linear_model import LinearRegression
+lr=LinearRegression()
+lr.fit(X_train,y_train)
+# regression coefficients 
+print('Coefficients: \n', lr.coef_) 
+
+# doing some prediction 
+X_pred=lr.predict(X_train) #predicting trained data                                     
+y_pred=lr.predict(X_test)  # predicting test data
+
+from sklearn.metrics import mean_squared_error     
+#printing error of train part   
+print(mean_squared_error(y_train,X_pred)) #mean square error
+# mean square error is zero Hence
+# X_pred and y_train have same values which means that pred column compeletely fits the linear
+#function
+
+# Now filling the pred column of gold using predicted value(y_pred)
+y_pred=pd.Series(y_pred)
+new_ser=pd.concat((y_train,y_pred), axis=0)
+new_ser=new_ser.reset_index(drop=True)
+Gold["pred_missing"]=new_ser
+
+#plotting
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set_style('whitegrid')
+sns.set_context('poster')
+sns.distplot(y_train)
+plt.title("actual pred")
+plt.show()
+
+#using regression for column new
+#___________________________________________________________________________________
+
+X1_train=Gold.iloc[:411, 1:5]
+y1_train=Gold.iloc[:411, 8]
+X1_test=Gold.iloc[411:, 1:5]
+y1_test=Gold.iloc[411:, 8]
+
+from sklearn.linear_model import LinearRegression
+lr=LinearRegression()
+lr.fit(X1_train,y1_train)
+# regression coefficients 
+print('Coefficients: \n', lr.coef_) 
+  
+X1_pred=lr.predict(X1_train)                                      
+y1_pred=lr.predict(X1_test)
+
+print(mean_squared_error(y1_train,X1_pred))
+print(mean_squared_error(y1_test,y1_pred))
+#here the mean square error is not zero
+#hence the new column of gold is the polynomial function
+
+#plotting
+sns.set_style('whitegrid')
+sns.set_context('poster')
+sns.distplot(y1_test)
+plt.title("Actual new")
+plt.show()
+sns.distplot(y1_pred)
+plt.title("predicted New")
+plt.show()
+
+#________________________________________________________________________________________
+# Q.2
+Bajfin=pd.read_csv("week3.csv")
+nifty=pd.read_csv("Nifty50.csv")
+nifty["pct_change"]=nifty["Close"].pct_change()*100
+nifty=nifty.fillna(0)
+
+#taking three months as 63 days
+t=np.zeros((494,1))
+Bajfin["beta"]=t
+
+for i in range(63,494):
+    x=np.reshape(np.array(nifty.iloc[i-63:i, 7]),(-1,1))
+    y=np.reshape(np.array(Bajfin.iloc[i-63:i,18]),(-1,1))
+    lr.fit(x,y)
+    Bajfin["beta"][i]=lr.coef_
+    
+    
+# monthly beta
+bfmc=Bajfin.groupby(["year","month"])["Close Price"]
+# calculating monthly prie change
+month_chng=[]
+for name, group in bfmc: 
+    m=np.array(group)
+    month_chng.append(((m[-1]-m[0])/m[-1])*100)
+
+
+nifty['Date'] = nifty['Date'].astype('datetime64[ns]')
+
+nifty['year'] = nifty['Date'].dt.year 
+nifty['month'] = nifty['Date'].dt.month 
+
+nfmc=nifty.groupby(["year","month"])["Close"]
+month_chngnf=[]
+for name, group in nfmc: 
+    m=np.array(group)
+    month_chngnf.append(((m[-1]-m[0])/m[-1])*100)
+    
+month_chng=np.array(month_chng)
+month_chngnf=np.array(month_chngnf)
+
+month_chng=np.reshape(month_chng, (-1,1))
+month_chngnf=np.reshape(month_chngnf, (-1,1))
+
+lr.fit(month_chngnf,month_chng)
+beta_monthly=lr.coef_
+#beta monthly=1.12302
+
+# answering the questions
+''' Most of the daily beta values for bajaj finance are 
+coming to be greater than 1 which shows that this stock is 
+very risky and very volatile. The monthly beta value is coming to
+be 1.12 shows that stock is still riskier in long term.
+If the beta values were negative then it means that the stock is
+moving against the market.'''
