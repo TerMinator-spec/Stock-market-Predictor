@@ -1,0 +1,63 @@
+#importing the dataset
+import pandas as pd
+import numpy as np
+dataset=pd.read_csv("BAJFINANCE.csv")
+
+X=dataset[dataset.Series != "BL"].reset_index(drop=True)
+des=X.describe()
+X.info()
+#X["Date"]=pd.to_datetime(X["Date"],format="%d/%m/%Y")
+X['Date'] = X['Date'].astype('datetime64[ns]')
+
+X['year'] = X['Date'].dt.year 
+X['month'] = X['Date'].dt.month 
+
+
+#X2=X.groupby(['year','month'])['Turnover'].sum().reset_index()
+#grouping data to calculate vwap
+X2=X.groupby(['year','month'])
+b=X2.get_group((2017,5))
+vwap=[]
+for name, group in X2:
+    x=pd.DataFrame(group)
+    x["avg"]=x["High Price"]+x["Close Price"]+x["Low Price"]
+    x["avg"]=x["avg"]/3
+    x["multi"]=x["avg"]*x["Total Traded Quantity"]
+    vwap.append((x["multi"].sum())/(x["Total Traded Quantity"].sum()))
+    
+     
+    
+    
+
+#average of closing price 
+def avg(N):
+    x=X.iloc[-N:,:]
+    t=x["Close Price"].mean()
+    return t
+
+#percent change for last N days    
+def percent(N):
+    t=((X["Close Price"][len(X)-1]-X["Prev Close"][len(X)-N])/X["Prev Close"][len(X)-N])*100
+    t=str(t)+"%"
+    return t
+
+#calculating percent change    
+X["pct_change"]=X["Close Price"].pct_change()*100
+X["pct_change"]=X["pct_change"].fillna(0)
+X["Trend"]=X["Series"]
+
+X["Trend"][(X["pct_change"]>=-0.5) & (X["pct_change"]<0.5) ]="No change"
+X["Trend"][(X["pct_change"]>=0.5) & (X["pct_change"]<1) ]="Slight positive"
+X["Trend"][(X["pct_change"]>=-1) & (X["pct_change"]<-0.5) ]="Slight negative"
+X["Trend"][(X["pct_change"]>=1) & (X["pct_change"]<3) ]="Positive"
+X["Trend"][(X["pct_change"]>=-3) & (X["pct_change"]<-1) ]="Negative"
+X["Trend"][(X["pct_change"]>=3) & (X["pct_change"]<7) ]="Among top gainers"
+X["Trend"][(X["pct_change"]>=-7) & (X["pct_change"]<-3) ]="Among top losers"
+X["Trend"][X["pct_change"]>=7  ]="Bull run"
+X["Trend"][X["pct_change"]<-7 ]="Bear drop"
+
+#calculating mean and median of total traded quantity
+grp = X.groupby('Trend') 
+ttq=grp['Total Traded Quantity'].agg([ np.mean, np.median]) 
+
+X.to_csv("week2.csv")

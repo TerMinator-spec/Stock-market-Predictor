@@ -1,0 +1,278 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+week2=pd.read_csv("week2.csv")
+week2['Date'] = week2['Date'].astype('datetime64[ns]').dt.date
+
+# line plot for closing price
+rc={'font.size': 100, 'axes.labelsize': 100, 'legend.fontsize':100, 
+    'axes.titlesize': 100, 'xtick.labelsize': 150, 'ytick.labelsize':150}
+plt.rcParams.update(**rc)
+sns.set(rc=rc)
+sns.set_style('whitegrid')
+sns.set_context('poster')
+fig = plt.figure(figsize = (20,20))
+
+sns.lineplot(x = "Date", y = "Close Price", data=week2,
+             palette = "hot"
+             ,color="blue"
+            )
+fig.autofmt_xdate()
+
+plt.title("Bajaj Finance") # for title
+plt.xlabel("Date") # label for x-axis
+plt.ylabel("Closing price") # label for y-axis
+plt.show()
+
+
+
+
+# stem plot for daily percentage change
+sns.set_style('whitegrid')
+sns.set_context('poster')
+fig=plt.figure(figsize = (50,40))
+plt.stem(week2["Date"], week2["pct_change"], use_line_collection=True)
+plt.xticks(fontsize=50)
+plt.yticks(fontsize=50)
+fig.autofmt_xdate()
+plt.title("Bajaj Finance", fontsize=50) # for title
+plt.xlabel("Date", fontsize=40) # label for x-axis
+plt.ylabel("Closing price", fontsize=40) # label for y-axis
+plt.show()
+
+
+# line plot for volumes
+sns.set_style('whitegrid')
+sns.set_context('poster')
+fig=plt.figure(figsize = (50,40))
+plt.plot(week2["Date"], week2["Total Traded Quantity"],color="red")
+plt.xticks(fontsize=50)
+plt.yticks(fontsize=50)
+fig.autofmt_xdate()
+plt.title("Bajaj Finance", fontsize=50) # for title
+plt.xlabel("Date", fontsize=40) # label for x-axis
+plt.ylabel("Volume", fontsize=40) # label for y-axis
+plt.show()
+
+#ocmparing volume and price change
+from sklearn.preprocessing import MinMaxScaler
+sc = MinMaxScaler(feature_range = (0, 5))
+z=np.array(week2["Total Traded Quantity"])
+z=np.reshape(z,(-1,1))
+yaxis=sc.fit_transform(z)
+
+sns.set_style('whitegrid')
+sns.set_context('poster')
+fig=plt.figure(figsize = (50,40))
+
+plt.plot(week2["Date"], yaxis,color="black", label="volume daily")
+
+plt.stem(week2["Date"], week2["pct_change"], use_line_collection=True,  label=
+         "percentage price change")
+plt.ylim(-10, 10)
+plt.xticks(fontsize=50)
+plt.yticks(fontsize=50)
+fig.autofmt_xdate()
+plt.title("Bajaj Finance", fontsize=50) # for title
+plt.xlabel("Date", fontsize=40) # label for x-axis
+plt.legend(fontsize=40)
+
+plt.show()
+
+#pie chart of trend
+df=week2.groupby(["Trend"]).count().reset_index()
+plt.figure(figsize = (50,30))
+colors=('b', 'g', 'r', 'c', 'm', 'y', 'burlywood', 'orange',"black")
+plt.pie(df["Symbol"], colors=colors ,labels=df["Trend"], 
+       autopct='%1.1f%%', textprops={'fontsize': 35})
+plt.title('TREND', fontsize=40)
+plt.axis('equal')
+plt.legend(fontsize=30)
+plt.show()
+
+#bar chart of mean total traded quantity
+dfmean=week2.groupby(["Trend"]).mean().reset_index()
+rc={'font.size': 32, 'axes.labelsize': 32, 'legend.fontsize': 32.0, 
+    'axes.titlesize': 32, 'xtick.labelsize': 32, 'ytick.labelsize': 32}
+plt.rcParams.update(**rc)
+sns.set(rc=rc)
+sns.set_style('whitegrid')
+sns.set_context('poster')
+plt.figure(figsize = (20,20))
+ax = sns.barplot(x =dfmean["Trend"], y = dfmean["Total Traded Quantity"],
+            palette = 'husl', edgecolor = 'w')
+
+ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha="right")
+plt.title("Bajaj Finance") # for title
+plt.xlabel("Trend") # label for x-axis
+plt.ylabel("Mean volume") # label for y-axis
+plt.tight_layout()
+plt.show()
+
+#bar chart for median volume 
+dfmedian=week2.groupby(["Trend"]).median().reset_index()
+rc={'font.size': 32, 'axes.labelsize': 32, 'legend.fontsize': 32.0, 
+    'axes.titlesize': 32, 'xtick.labelsize': 32, 'ytick.labelsize': 32}
+plt.rcParams.update(**rc)
+sns.set(rc=rc)
+sns.set_style('whitegrid')
+sns.set_context('poster')
+plt.figure(figsize = (20,20))
+ax = sns.barplot(x =dfmedian["Trend"], y = dfmedian["Total Traded Quantity"],
+            palette = 'husl', edgecolor = 'w')
+
+ax.set_xticklabels(ax.get_xticklabels(), rotation=40, ha="right")
+plt.title("Bajaj Finance") # for title
+plt.xlabel("Trend") # label for x-axis
+plt.ylabel("Median volume") # label for y-axis
+plt.tight_layout()
+plt.show()
+
+# histogram for daily return percentage
+sns.set_style('whitegrid')
+sns.set_context('poster')
+plt.figure(figsize = (20,20))
+plt.hist(week2["pct_change"])
+plt.title("Bajaj Finance") # for title
+plt.xlabel("daily return") # label for x-axis
+plt.ylabel("frequency") # label for y-axis
+plt.tight_layout()
+plt.show()
+
+# correlation analysis of different stocks
+asianpaints=pd.read_csv("ASIANPAINT.csv")
+ap=asianpaints[asianpaints.Series != "BL"].reset_index(drop=True)
+axis=pd.read_csv("AXISBANK.csv")
+axis=axis[axis.Series != "BL"].reset_index(drop=True)
+hul=pd.read_csv("HINDUNILVR.csv")
+hul=hul[hul.Series != "BL"].reset_index(drop=True)
+reliance=pd.read_csv("RELIANCE.csv")
+reliance=reliance[reliance.Series != "BL"].reset_index(drop=True)
+maruti=pd.read_csv("MARUTI.csv")
+maruti=maruti[maruti.Series != "BL"].reset_index(drop=True)
+
+dfstocks=pd.concat([axis["Close Price"],asianpaints["Close Price"],hul["Close Price"],reliance["Close Price"], maruti["Close Price"]],axis=1)
+dfstocks.columns=["axis bank","asianpaints","hindunilvr","Reliance","Maruti"]
+
+dfpctchng=pd.concat([axis["Close Price"].pct_change()*100,asianpaints["Close Price"].pct_change()*100,hul["Close Price"].pct_change()*100,reliance["Close Price"].pct_change()*100, maruti["Close Price"].pct_change()*100],axis=1)
+dfpctchng.columns=["axis bank","asianpaints","hindunilvr","Reliance","Maruti"]
+dfpctchng=dfpctchng.iloc[1:,:]
+
+
+sns.pairplot(dfpctchng)
+plt.show()
+
+# calculating rolling average and std
+week2["7 rolling average"]=week2["pct_change"].rolling(7).mean()
+std=week2["7 rolling average"].std()
+#plot of 7 day rolling average
+rc={'font.size': 100, 'axes.labelsize': 100, 'legend.fontsize':100, 
+    'axes.titlesize': 100, 'xtick.labelsize': 150, 'ytick.labelsize':150}
+plt.rcParams.update(**rc)
+sns.set(rc=rc)
+sns.set_style('whitegrid')
+sns.set_context('poster')
+fig = plt.figure(figsize = (30,20))
+
+sns.lineplot(x = "Date", y = "7 rolling average", data=week2,
+             palette = "hot"
+             ,color="green"
+            )
+fig.autofmt_xdate()
+
+plt.title("Bajaj Finance") # for title
+plt.xlabel("Date") # label for x-axis
+plt.ylabel("rolling average") # label for y-axis
+plt.show()
+
+# nifty index volatility
+nifty= pd.read_csv("Nifty50.csv")
+nifty["pct_change"]=nifty["Close"].pct_change()*100
+nifty=nifty.fillna(0)
+nifty["7 rolling average"]=nifty["pct_change"].rolling(7).mean()
+
+#comparing two plots
+fig = plt.figure(figsize = (30,20))
+
+sns.lineplot(x = "Date", y = "7 rolling average", data=week2,
+             palette = "hot"
+             ,color="green",label="bajaj finance"
+            )
+sns.lineplot(x = week2["Date"], y = "7 rolling average", data=nifty,
+             palette = "hot"
+             ,color="red",label="nifty 50"
+            )
+fig.autofmt_xdate()
+
+plt.title("Bajaj Finance") # for title
+plt.xlabel("Date") # label for x-axis
+plt.ylabel("rolling average") # label for y-axis
+plt.legend()
+plt.show()
+
+#plotting 21 and 34 day moving average
+week2["21 moving average"]=week2["Close Price"].rolling(21).mean()
+week2["34 moving average"]=week2["Close Price"].rolling(34).mean()
+
+fig = plt.figure(figsize = (30,20))
+
+sns.lineplot(x = "Date", y = "Close Price", data=week2,
+             palette = "hot"
+             ,color="blue"
+            )
+
+sns.lineplot(x = "Date", y = "21 moving average", data=week2,
+             palette = "hot"
+             ,color="green",label="21 moving average"
+            )
+sns.lineplot(x ="Date", y = "34 moving average", data=week2,
+             palette = "hot"
+             ,color="red",label="34 moving average"
+            )
+fig.autofmt_xdate()
+
+plt.title("Bajaj Finance", fontsize=25) # for title
+plt.xlabel("Date", fontsize=25) # label for x-axis
+plt.ylabel("price", fontsize=25) # label for y-axis
+plt.xticks(fontsize=30)
+plt.yticks(fontsize=30)
+plt.legend(fontsize=30)
+plt.show()
+
+#Bollinger bands
+week2["average"]=week2["Close Price"].rolling(14).mean()
+week2["std14"]=week2["Close Price"].rolling(14).std()
+week2["upperband"]=week2["average"]+2*week2["std14"]
+week2["lowerband"]=week2["average"]-2*week2["std14"]
+
+#plotting bollinger bands
+fig = plt.figure(figsize = (30,20))
+sns.lineplot(x = "Date", y = "Close Price", data=week2,
+             palette = "hot"
+             ,color="blue", label="original price"
+            )
+sns.lineplot(x = "Date", y = "average", data=week2,
+             palette = "hot"
+             ,color="red",label="moving average 14"
+            )
+
+sns.lineplot(x = "Date", y = "upperband", data=week2,
+             palette = "hot"
+             ,color="black",label="upperband"
+            )
+sns.lineplot(x ="Date", y = "lowerband", data=week2,
+             palette = "hot"
+             ,color="black",label="lowerband"
+            )
+fig.autofmt_xdate()
+
+plt.title("Bajaj Finance", fontsize=25) # for title
+plt.xlabel("Date", fontsize=25) # label for x-axis
+plt.ylabel("price", fontsize=25) # label for y-axis
+plt.xticks(fontsize=30)
+plt.yticks(fontsize=30)
+plt.legend(fontsize=30)
+plt.show()
+
+week2.to_csv("week3.csv")

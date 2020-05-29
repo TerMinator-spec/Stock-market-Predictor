@@ -1,0 +1,314 @@
+import pandas as pd
+import numpy as np
+
+Bajfin=pd.read_csv("week3.csv")
+# to get rid of nan values
+X=Bajfin.iloc[13:,:]
+#initiating calls column
+X["calls"]=X["std 20"]
+
+
+
+X=X.reset_index(drop=True)
+
+for i in range(481):
+    if(X['Close Price'][i] < X["lowerband"][i]):
+        X["calls"][i]="Buy"
+    elif((X['Close Price'][i] > X["lowerband"][i]) & (X['Close Price'][i] < X["average"][i])):
+        X["calls"][i]="Hold Buy/Liquidate Short"
+    elif((X['Close Price'][i] > X["average"][i]) & (X['Close Price'][i] < X["upperband"][i])):
+        X["calls"][i]="Hold Short/Liquidate Buy"
+    elif(X['Close Price'][i] > X["upperband"][i]):
+        X["calls"][i]="Short"
+        
+# preparing data for classifiation
+train=X.loc[:,["Open Price","High Price","Low Price","Close Price","average", "upperband", "lowerband","calls"]]
+
+x=train.iloc[:,0:7]
+y=train.iloc[:,7]
+
+#importing necessary modules
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from keras.utils import np_utils
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import LabelEncoder
+from sklearn.pipeline import Pipeline
+
+#preparing output
+encoder = LabelEncoder()
+encoder.fit(y)
+encoded_Y = encoder.transform(y)
+y= np_utils.to_categorical(encoded_Y)
+# convert integers to dummy variables (i.e. one hot encoded)
+
+
+# implementing deep neural network model
+
+classifier = Sequential()
+classifier.add(Dense(units = 8, kernel_initializer = 'uniform', activation = 'relu', input_dim = 7))
+#classifier.add(Dense(units = 6, kernel_initializer = 'uniform', activation = 'relu'))
+classifier.add(Dense(units = 4, kernel_initializer = 'uniform', activation = 'softmax'))
+classifier.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(x, encoded_Y, test_size=0.2, random_state=42)
+y_train= np_utils.to_categorical(y_train)
+classifier.fit(X_train, y_train, epochs=200, batch_size=25)
+y_pred=classifier.predict_classes(X_test)
+y_pred2=classifier.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac6=accuracy_score(y_test,y_pred)
+#88% acuracy
+
+
+---------------------------------------------------------------
+# implementing xgboost classifier
+
+import xgboost as xgb
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+model=xgb.XGBClassifier(objective="multi:softmax", num_class=4)
+# getting data in required format
+X_xg=np.array(x)
+y_xg=np.array(encoded_Y)
+
+
+X_train, X_test, y_train, y_test = train_test_split(X_xg, y_xg, test_size=0.2, random_state=42)
+
+# setting parameters for random search
+n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+learning_rate=[float(x) for x in np.linspace(start = 0.1, stop = 1, num = 10)]
+min_child_weight=[int(x) for x in np.linspace(start = 2, stop = 20, num = 10)]
+gamma=[int(x) for x in np.linspace(start = 0.1, stop = 0.5, num = 5)]
+subsample=[float(x) for x in np.linspace(start = 0.1, stop = 1, num = 10)]
+colsample=[float(x) for x in np.linspace(start = 0.1, stop = 1, num = 10)]
+max_depth=[int(x) for x in np.linspace(start = 1, stop = 10, num = 10)]
+
+params = {"n_estimators":n_estimators,
+        "learning_rate":learning_rate,
+        'min_child_weight': min_child_weight,
+        'gamma': gamma,
+        'subsample': subsample,
+        'colsample_bytree': colsample,
+        'max_depth': max_depth,
+        'min_samples_split': min_samples_split,
+        'min_samples_leaf': min_samples_leaf,
+        'max_features': max_features,
+        'bootstrap': bootstrap}
+        
+        
+rf_random = RandomizedSearchCV(estimator = model, param_distributions = params, n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+# Fit the random search model
+rf_random.fit(X_train, y_train)
+
+bst_pxg=rf_random.best_params_
+best_random = rf_random.best_estimator_
+
+
+
+best_random.fit(X_train,y_train)
+y_pred=best_random.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac3=accuracy_score(y_test,y_pred)
+#got 83% accuracy
+
+# setting parameters for grid search
+params2={"n_estimators":[100,200,300],
+        "learning_rate":[0.2,0.3],
+        "gamma":[0,0.1,0.2],
+        "colsample_bytree":[0.6,0.8,1],
+        "subsample":[0.4,0.6,0.8,1],
+        "max_depth":[5,6,7],
+        
+        }
+
+grid = GridSearchCV(estimator=model, param_grid=params2, n_jobs=-1, cv=3, verbose=3 )
+grid.fit(X_train, y_train)
+bst_pg2=grid.best_params_
+best_grid = grid.best_estimator_
+best_grid.fit(X_train,y_train)
+y_pred=best_grid.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac4=accuracy_score(y_test,y_pred)
+# still 83%
+
+t=xgb.XGBClassifier(base_score=0.5, booster='gbtree', bootstrap=True,
+              colsample_bylevel=1, colsample_bynode=1, colsample_bytree=1,
+              gamma=0, gpu_id=-1, importance_type='gain',
+              interaction_constraints='', learning_rate=0.3, max_delta_step=0,
+              max_depth=6, max_features='auto', min_child_weight=1,
+              min_samples_leaf=2, min_samples_split=5, 
+              monotone_constraints='()', n_estimators=800, n_jobs=0,
+              num_class=4, num_parallel_tree=1, objective='multi:softprob',
+              random_state=0, reg_alpha=0, reg_lambda=1, scale_pos_weight=None,
+              subsample=1, tree_method='exact')
+
+t.fit(X_train,y_train)
+y_pred=t.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac5=accuracy_score(y_test,y_pred)
+# this xgboost model is giving 85% accuracy
+
+
+----------------------------------------------------------------------------------
+# using random forest
+from sklearn.ensemble import RandomForestClassifier
+classifier = RandomForestClassifier( criterion = 'entropy')
+
+# initiating random search
+from sklearn.model_selection import RandomizedSearchCV
+# Number of trees in random forest
+n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+# Number of features to consider at every split
+max_features = ['auto', 'sqrt']
+# Maximum number of levels in tree
+max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+max_depth.append(None)
+# Minimum number of samples required to split a node
+min_samples_split = [2, 5, 10]
+# Minimum number of samples required at each leaf node
+min_samples_leaf = [1, 2, 4]
+# Method of selecting samples for training each tree
+bootstrap = [True, False]
+# Create the random grid
+random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap}
+
+
+rf_random = RandomizedSearchCV(estimator = classifier, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+# Fit the random search model
+X_xg=np.array(x)
+y_xg=np.array(encoded_Y)
+from sklearn.preprocessing import StandardScaler
+sc=StandardScaler()
+X_xg=sc.fit_transform(X_xg)
+X_train, X_test, y_train, y_test = train_test_split(X_xg, y_xg, test_size=0.2, random_state=42)
+rf_random.fit(X_train, y_train)
+ 
+bst_p=rf_random.best_params_
+best_random = rf_random.best_estimator_
+
+
+
+best_random.fit(X_train,y_train)
+y_pred=best_random.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac1=accuracy_score(y_test,y_pred)
+#got 84% accuracy
+
+# now doing grid searh
+# Create the parameter grid based on the results of random search 
+param_grid = {
+    'bootstrap': [True],
+    'max_depth': [10,20,30],
+    'max_features': [2, 3,4],
+    'min_samples_leaf': [1,2],
+    'min_samples_split': [2,4,6],
+    'n_estimators': [800,900,1000,1100]
+}
+
+grid_search = GridSearchCV(estimator = classifier, param_grid = param_grid, 
+                          cv = 3, n_jobs = -1, verbose = 2)
+grid_search.fit(X_train, y_train)
+bst_pg=grid_search.best_params_
+best_grid = grid_search.best_estimator_
+best_grid.fit(X_train,y_train)
+y_pred=best_grid.predict(X_test)
+from sklearn.metrics import accuracy_score
+ac2=accuracy_score(y_test,y_pred)
+# still getting 84% accuracy
+
+___________________________________________________________________
+# importing the data of other stock
+# Hdfc bank
+hdfc=pd.read_csv("HDFC.csv")
+
+data=hdfc[hdfc.Series == "EQ"].reset_index(drop=True)
+data['Date'] = data['Date'].astype('datetime64[ns]')
+
+data['year'] = data['Date'].dt.year 
+data['month'] = data['Date'].dt.month 
+
+data["average"]=data["Close Price"].rolling(14).mean()
+data["std14"]=data["Close Price"].rolling(14).std()
+data["upperband"]=data["average"]+2*data["std14"]
+data["lowerband"]=data["average"]-2*data["std14"]
+
+
+Xh=data.iloc[13:,:]
+#initiating calls column
+Xh["calls"]=Xh["average"]
+
+Xh=Xh.reset_index(drop=True)
+
+for i in range(481):
+    if(Xh['Close Price'][i] < Xh["lowerband"][i]):
+        Xh["calls"][i]="Buy"
+    elif((Xh['Close Price'][i] > Xh["lowerband"][i]) & (Xh['Close Price'][i] < Xh["average"][i])):
+        Xh["calls"][i]="Hold Buy/Liquidate Short"
+    elif((Xh['Close Price'][i] > Xh["average"][i]) & (Xh['Close Price'][i] < Xh["upperband"][i])):
+        Xh["calls"][i]="Hold Short/Liquidate Buy"
+    elif(Xh['Close Price'][i] > Xh["upperband"][i]):
+        Xh["calls"][i]="Short"
+
+
+train_data=Xh.loc[:,["Open Price","High Price","Low Price","Close Price","average", "upperband", "lowerband","calls"]]
+
+X_t=train_data.iloc[:,0:7]
+y_t=train_data.iloc[:,7]
+
+encoder = LabelEncoder()
+encoder.fit(y_t)
+encoded_y = encoder.transform(y_t)
+
+# now using different models for prediction
+# training the data
+# using deep neural network
+classifier.fit(x, y, epochs=300, batch_size=25)# already define the classifier above
+pred=classifier.predict_classes(X_t)
+ac_dnn=accuracy_score(encoded_y,pred) # we got accuracy of 84%
+
+
+#using random forest
+from sklearn.ensemble import RandomForestClassifier
+classifier2 = RandomForestClassifier( criterion = 'entropy',bootstrap=True,max_depth=20,
+                                    max_features=3, min_samples_split=2,min_samples_leaf=1,
+                                    n_estimators=800)
+#standardizing data
+from sklearn.preprocessing import StandardScaler
+sc=StandardScaler()
+x2=sc.fit_transform(x)
+X_t=sc.transform(X_t)
+classifier2.fit(x2, encoded_Y)
+pred_rf=classifier2.predict(X_t)
+ac_rf=accuracy_score(encoded_y,pred_rf) #accuracy of 69%
+
+#using xgboost
+import xgboost as xgb
+classifier3=xgb.XGBClassifier(base_score=0.5, booster='gbtree', bootstrap=True,
+              colsample_bylevel=1, colsample_bynode=1, colsample_bytree=1,
+              gamma=0, gpu_id=-1, importance_type='gain',
+              interaction_constraints='', learning_rate=0.3, max_delta_step=0,
+              max_depth=6, max_features='auto', min_child_weight=1,
+              min_samples_leaf=2, min_samples_split=5, 
+              monotone_constraints='()', n_estimators=800, n_jobs=0,
+              num_class=4, num_parallel_tree=1, objective='multi:softprob',
+              random_state=0, reg_alpha=0, reg_lambda=1, scale_pos_weight=None,
+              subsample=1, tree_method='exact')
+classifier3.fit(x, encoded_Y)
+pred_xg=classifier3.predict(X_t)
+ac_xg=accuracy_score(encoded_y,pred_xg)# accuracy of 66%
+
+# so our deep neural network is best giving accuracy of 84%
+# getting predicted calls from encodings
+prediction = encoder.inverse_transform(pred)
+# adding prediction column to our dataframe
+Xh["prediction"]=prediction
