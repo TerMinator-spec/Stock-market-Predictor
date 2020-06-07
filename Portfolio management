@@ -1,0 +1,139 @@
+import pandas as pd
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+Bajfin=pd.read_csv("week3.csv")
+
+# calculating mean daily returns and standard deviation
+mean_d_r_bf=Bajfin["pct_change"].mean() #coming to be 0.17%
+d_std_r=Bajfin["pct_change"].std() #coming to be 2.02
+
+annual_mean=mean_d_r_bf*252 #45% return anually
+volatility=d_std_r* math.sqrt(252) #32
+
+# choosing 5 stocks
+#1. Bajaj finance calculated above
+#2. Hindustan Unilever
+hul=pd.read_csv("HINDUNILVR.csv")
+hul["pct_change"]=hul["Close Price"].pct_change()*100
+hul["pct_change"]=hul["pct_change"].fillna(0)
+mean_d_r_hul=hul["pct_change"].mean() #coming to be 0.11%
+d_std_r_hul=hul["pct_change"].std() #coming to be 1.21
+
+annual_mean_hul=mean_d_r_hul*252 #29% return anually
+volatility_hul=d_std_r_hul* math.sqrt(252) #19
+
+#3. reliance industries
+rel=pd.read_csv("RELIANCE.csv")
+
+rel["pct_change"]=rel["Close Price"].pct_change()*100
+rel["pct_change"]=rel["pct_change"].fillna(0)
+rel=rel.drop(80)# due to bonus share issue
+mean_d_r_rel=rel["pct_change"].mean() #coming to be 0.13%
+d_std_r_rel=rel["pct_change"].std() #coming to be 1.5
+
+annual_mean_rel=mean_d_r_rel*252 #34.3% return anually
+volatility_rel=d_std_r_rel* math.sqrt(252) #25
+
+#4. Voltas
+vol=pd.read_csv("VOLTAS.csv")
+vol["pct_change"]=vol["Close Price"].pct_change()*100
+vol["pct_change"]=vol["pct_change"].fillna(0)
+mean_d_r_vol=vol["pct_change"].mean() #coming to be 0.07%
+d_std_r_vol=vol["pct_change"].std() #coming to be 1.9
+
+annual_mean_vol=mean_d_r_vol*252 #19% return anually
+volatility_vol=d_std_r_vol* math.sqrt(252) #30
+
+#5.tcs
+lt=pd.read_csv("TCS.csv")
+lt["pct_change"]=lt["Close Price"].pct_change()*100
+lt["pct_change"]=lt["pct_change"].fillna(0)
+
+lt=lt.drop(261) #split
+mean_d_r_lt=lt["pct_change"].mean() #coming to be 0.13%
+d_std_r_lt=lt["pct_change"].std() #coming to be 1.47
+
+annual_mean_lt=mean_d_r_lt*252 #33% return anually
+volatility_lt=d_std_r_lt* math.sqrt(252) #23.46
+
+#Now calculating average annual return and volatility of portfolio
+annual_return_portfolio=(annual_mean+annual_mean_hul+annual_mean_lt+annual_mean_rel+annual_mean_vol)/5 # 32%
+volatility_portfolio=(volatility+volatility_hul+volatility_lt+volatility_rel+volatility_vol)/5 #26
+
+def get_return(l):
+    return annual_mean*(l[0]/100)+annual_mean_hul*(l[1]/100)+annual_mean_lt*(l[2]/100)+annual_mean_rel*(l[3]/100)+annual_mean_vol*(l[4]/100)
+def get_volatility(l):
+    return volatility*(l[0]/100)+volatility_hul*(l[1]/100)+volatility_lt*(l[2]/100)+volatility_rel*(l[3]/100)+volatility_vol*(l[4]/100)
+
+
+print(get_return(20,20,20,20,20))
+
+from itertools import permutations 
+  
+x=[15,30,25,30,10]
+y=[10,20,20,30,30]
+z=[5,15,25,25,30]
+permx = list(permutations(x) )
+permy = list(permutations(y) )
+permz = list(permutations(z) )
+
+returns=[]
+volat=[]
+divx=[]  
+volminx=[]
+for i in range(len(permx)):
+    r=get_return(list(permx[i]))
+    v=get_volatility(list(permx[i]))
+    divx.append(r/v)
+    volminx.append(v)
+    returns.append(r)
+    volat.append(v)
+    
+divy=[]  
+volminy=[]
+for i in range(len(permy)):
+    r=get_return(list(permy[i]))
+    v=get_volatility(list(permy[i]))
+    divy.append(r/v)
+    volminy.append(v)
+    returns.append(r)
+    volat.append(v)
+    
+divz=[]  
+volminz=[]
+for i in range(len(permz)):
+    r=get_return(list(permz[i]))
+    v=get_volatility(list(permz[i]))
+    divz.append(r/v)
+    volminz.append(v)
+    returns.append(r)
+    volat.append(v)
+    
+
+m=divx+divy+divz    
+plt.scatter(volat,returns, c=m)
+
+# max return/volatility ratio
+print(max(divx),max(divy),max(divz)) #we are getting max from divz
+#getting portfolio weights with max return/volatility ratio
+portfolio1=permz[divz.index(max(divz))]
+''' 
+bajaj finance=25%
+hindustan unlvr=30%
+TCS=25%
+reliance=15%
+voltas=5%
+'''
+
+#Min volatility 
+print(min(volminx),min(volminy),min(volminz)) # min value from volminz
+#getting portfolio weights for minimum volatility
+portfolio2=permz[volminz.index(min(volminz))]
+''' 
+bajaj finance=5%
+hindustan unlvr=30%
+TCS=25%
+reliance=25%
+voltas=15%
+'''
