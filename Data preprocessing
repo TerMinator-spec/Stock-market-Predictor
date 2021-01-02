@@ -6,26 +6,14 @@ dataset=pd.read_csv("BAJFINANCE.csv")
 X=dataset[dataset.Series != "BL"].reset_index(drop=True)
 des=X.describe()
 X.info()
-#X["Date"]=pd.to_datetime(X["Date"],format="%d/%m/%Y")
+
 X['Date'] = X['Date'].astype('datetime64[ns]')
 
 X['year'] = X['Date'].dt.year 
 X['month'] = X['Date'].dt.month 
 
 
-#X2=X.groupby(['year','month'])['Turnover'].sum().reset_index()
-#grouping data to calculate vwap
-X2=X.groupby(['year','month'])
-b=X2.get_group((2017,5))
-vwap=[]
-for name, group in X2:
-    x=pd.DataFrame(group)
-    x["avg"]=x["High Price"]+x["Close Price"]+x["Low Price"]
-    x["avg"]=x["avg"]/3
-    x["multi"]=x["avg"]*x["Total Traded Quantity"]
-    vwap.append((x["multi"].sum())/(x["Total Traded Quantity"].sum()))
-    
-     
+
     
     
 
