@@ -44,15 +44,15 @@ list33=["BAJAJELEC","CENTURYPLY","IRCON","LALPATHLAB","LEMONTREE","PVR","LUXIND"
 X3.columns=list33 
 
 dataset=pd.concat((X,X2,X3),axis=1)
-
+import modulus
 # let us assume that theoretical one year period is of 252 days then
 name=list11+list22+list33
 a_r=[]
 vol=[]
 for i in range(30):
-    x=pd.DataFrame(dataset[name[i]].pct_change()*100)
+    x=pd.DataFrame(dataset[name[i]].pct_change())
     x=x[x[name[i]]>=-45]
-    a_r.append((x[name[i]].mean())*252)
+    a_r.append(modulus.annualize_rets(x,252)[0])
     vol.append((x[name[i]].std())*math.sqrt(252))
     
     
