@@ -3,7 +3,6 @@ import numpy as np
 
 Gold=pd.read_csv("GOLD.csv")
 #Using regression for column pred
-#___________________________________________________________________________________________
 # getting data for regression
 X_train=Gold.iloc[:411, 1:5]
 y_train=Gold.iloc[:411, 7]
@@ -24,9 +23,6 @@ y_pred=lr.predict(X_test)  # predicting test data
 from sklearn.metrics import mean_squared_error     
 #printing error of train part   
 print(mean_squared_error(y_train,X_pred)) #mean square error
-# mean square error is zero Hence
-# X_pred and y_train have same values which means that pred column compeletely fits the linear
-#function
 
 # Now filling the pred column of gold using predicted value(y_pred)
 y_pred=pd.Series(y_pred)
@@ -44,40 +40,7 @@ sns.distplot(y_train)
 plt.title("actual pred")
 plt.show()
 
-#using regression for column new
-#___________________________________________________________________________________
-
-X1_train=Gold.iloc[:411, 1:5]
-y1_train=Gold.iloc[:411, 8]
-X1_test=Gold.iloc[411:, 1:5]
-y1_test=Gold.iloc[411:, 8]
-
-from sklearn.linear_model import LinearRegression
-lr=LinearRegression()
-lr.fit(X1_train,y1_train)
-# regression coefficients 
-print('Coefficients: \n', lr.coef_) 
-  
-X1_pred=lr.predict(X1_train)                                      
-y1_pred=lr.predict(X1_test)
-
-print(mean_squared_error(y1_train,X1_pred))
-print(mean_squared_error(y1_test,y1_pred))
-#here the mean square error is not zero
-#hence the new column of gold is the polynomial function
-
-#plotting
-sns.set_style('whitegrid')
-sns.set_context('poster')
-sns.distplot(y1_test)
-plt.title("Actual new")
-plt.show()
-sns.distplot(y1_pred)
-plt.title("predicted New")
-plt.show()
-
-#________________________________________________________________________________________
-# Q.2
+# Calculating beta value
 Bajfin=pd.read_csv("week3.csv")
 nifty=pd.read_csv("Nifty50.csv")
 nifty["pct_change"]=nifty["Close"].pct_change()*100
@@ -96,7 +59,7 @@ for i in range(63,494):
     
 # monthly beta
 bfmc=Bajfin.groupby(["year","month"])["Close Price"]
-# calculating monthly prie change
+# calculating monthly price change
 month_chng=[]
 for name, group in bfmc: 
     m=np.array(group)
@@ -124,7 +87,7 @@ lr.fit(month_chngnf,month_chng)
 beta_monthly=lr.coef_
 #beta monthly=1.12302
 
-# answering the questions
+
 ''' Most of the daily beta values for bajaj finance are 
 coming to be greater than 1 which shows that this stock is 
 very risky and very volatile. The monthly beta value is coming to
