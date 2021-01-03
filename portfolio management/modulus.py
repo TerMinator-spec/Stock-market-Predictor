@@ -25,13 +25,6 @@ def get_drdown(data):
     df=pd.DataFrame(dict)
     return df
     
-def get_hfi_returns():
-    import pandas as pd 
-    X=pd.read_csv("E:/pfconstdata/data/edhec-hedgefundindices.csv", header=0, index_col=0, parse_dates=True,
-                 na_values=-99.99)
-    X=X/100
-    X.index=X.index.to_period("M")
-    return X
 
 def skewness(r):
     demeaned_r=r-r.mean()
@@ -113,9 +106,7 @@ def cvar_historic(r, level=5):
 def annualize_rets(r, periods_per_year):
     """
     Annualizes a set of returns
-    We should infer the periods per year
-    but that is currently left as an exercise
-    to the reader :-)
+   
     """
     compounded_growth = (1+r).prod()
     n_periods = r.shape[0]
@@ -124,9 +115,7 @@ def annualize_rets(r, periods_per_year):
 def annualize_vol(r, periods_per_year):
     """
     Annualizes the vol of a set of returns
-    We should infer the periods per year
-    but that is currently left as an exercise
-    to the reader :-)
+    
     """
     return r.std()*(periods_per_year**0.5)
 
